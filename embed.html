@@ -191,6 +191,23 @@
             return '$' + Math.round(num).toLocaleString('en-US');
         }
 
+        function postHeight() {
+            if (window.parent === window) return;
+            const height = Math.max(
+                document.body.scrollHeight,
+                document.documentElement.scrollHeight,
+                document.body.offsetHeight,
+                document.documentElement.offsetHeight
+            );
+            window.parent.postMessage(
+                {
+                    type: 'midland-calc-resize',
+                    height: height
+                },
+                '*'
+            );
+        }
+
         function updateRange(id, value) {
             document.getElementById(id + '-display').innerText = value + '%';
         }
@@ -226,9 +243,27 @@
             document.getElementById('res-mortgage').innerText = formatCurrency(mortgageAmount);
             document.getElementById('res-total-balance').innerText = formatCurrency(totalBalance);
             document.getElementById('res-total-downpayment').innerText = formatCurrency(totalDownpaymentAmount);
+
+            requestAnimationFrame(postHeight);
         }
 
-        window.onload = calculate;
+        function initAutoResize() {
+            postHeight();
+            window.addEventListener('resize', postHeight);
+
+            if (window.ResizeObserver) {
+                const observer = new ResizeObserver(() => postHeight());
+                observer.observe(document.body);
+            }
+
+            setTimeout(postHeight, 200);
+            setTimeout(postHeight, 800);
+        }
+
+        window.onload = function () {
+            calculate();
+            initAutoResize();
+        };
     </script>
 </body>
 </html>
