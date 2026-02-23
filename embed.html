@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>買樓開支計算機（嵌入版）</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            important: '#midland-calc-widget',
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
+
+    <style>
+        #midland-calc-widget {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.5;
+            -webkit-text-size-adjust: 100%;
+            text-align: left;
+        }
+        #midland-calc-widget *,
+        #midland-calc-widget ::before,
+        #midland-calc-widget ::after {
+            box-sizing: border-box;
+            border-width: 0;
+            border-style: solid;
+            border-color: #e5e7eb;
+        }
+        #midland-calc-widget h2,
+        #midland-calc-widget h3,
+        #midland-calc-widget h4,
+        #midland-calc-widget p {
+            margin: 0;
+        }
+        #midland-calc-widget input {
+            font-family: inherit;
+            font-size: 100%;
+            line-height: inherit;
+            margin: 0;
+            background-color: transparent;
+        }
+        #midland-calc-widget input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        #midland-calc-widget input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #eab308;
+            cursor: pointer;
+            margin-top: -8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        #midland-calc-widget input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #e5e7eb;
+            border-radius: 4px;
+        }
+        #midland-calc-widget input[type=range]:focus {
+            outline: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="midland-calc-widget" class="bg-gray-50 text-gray-800 p-3 md:p-6 rounded-2xl w-full">
+        <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+            <div class="w-full md:w-5/12 bg-gray-900 text-white p-6 md:p-8 flex flex-col justify-center">
+                <h2 class="text-2xl font-bold mb-2 text-yellow-400">買樓開支計算機</h2>
+                <p class="text-sm text-gray-400 mb-8">一鍵計清細訂、大訂、首期尾數及按揭金額，助您輕鬆規劃置業預算。</p>
+
+                <div class="mb-6">
+                    <label for="price" class="block text-sm font-medium text-gray-300 mb-2">物業樓價 (萬港元)</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
+                        <input type="number" id="price" value="600" min="1" class="w-full bg-gray-800 text-white border border-gray-700 rounded-lg py-3 pl-8 pr-4 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-colors text-lg" oninput="calculate()">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <label for="initial-dep-range" class="block text-sm font-medium text-gray-300">細訂比例 (%)</label>
+                        <span id="initial-dep-display" class="text-yellow-400 font-bold">5%</span>
+                    </div>
+                    <input type="range" id="initial-dep-range" min="1" max="10" value="5" step="0.5" class="w-full" oninput="updateRange('initial-dep', this.value); calculate()">
+                    <p class="text-xs text-gray-500 mt-2">一般為樓價的 3% 至 5%</p>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <label for="mortgage-range" class="block text-sm font-medium text-gray-300">預計按揭成數 (%)</label>
+                        <span id="mortgage-display" class="text-yellow-400 font-bold">70%</span>
+                    </div>
+                    <input type="range" id="mortgage-range" min="10" max="90" value="70" step="5" class="w-full" oninput="updateRange('mortgage', this.value); calculate()">
+                </div>
+
+                <div class="mt-auto pt-6 border-t border-gray-700">
+                    <p class="text-xs text-gray-400 leading-relaxed">
+                        * 註：大訂金額會自動以「樓價 10% 扣除細訂」計算。<br>
+                        * 結果僅供參考，實際金額以買賣合約及銀行批核為準。
+                    </p>
+                </div>
+            </div>
+
+            <div class="w-full md:w-7/12 p-6 md:p-8 bg-white">
+                <h3 class="text-xl font-bold text-gray-800 border-b pb-4 mb-6">付款時間表及開支拆解</h3>
+
+                <div class="space-y-6">
+                    <div class="flex items-start bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+                        <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-yellow-400 text-white font-bold mr-4">1</div>
+                        <div class="flex-grow">
+                            <h4 class="text-lg font-bold text-gray-800">簽署臨時合約 <span class="text-sm font-normal text-gray-500 ml-2">(支付細訂)</span></h4>
+                            <div class="mt-2 flex justify-between items-end">
+                                <span class="text-gray-600 text-sm">細訂金額 (<span id="lbl-initial-percent">5</span>%)：</span>
+                                <span id="res-initial" class="text-2xl font-bold text-yellow-600">$300,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start bg-blue-50 p-4 rounded-xl border border-blue-100">
+                        <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 text-white font-bold mr-4">2</div>
+                        <div class="flex-grow">
+                            <h4 class="text-lg font-bold text-gray-800">簽署正式合約 <span class="text-sm font-normal text-gray-500 ml-2">(14天內支付大訂)</span></h4>
+                            <div class="mt-2 flex justify-between items-end border-b border-blue-200 pb-2">
+                                <span class="text-gray-600 text-sm">大訂金額 (補足10%)：</span>
+                                <span id="res-further" class="text-xl font-bold text-blue-700">$300,000</span>
+                            </div>
+                            <div class="mt-2 flex justify-between items-end">
+                                <span class="text-gray-500 text-xs">已付定金總額 (10%)：</span>
+                                <span id="res-total-dep" class="text-sm font-semibold text-gray-600">$600,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start bg-green-50 p-4 rounded-xl border border-green-100">
+                        <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-green-500 text-white font-bold mr-4">3</div>
+                        <div class="flex-grow">
+                            <h4 class="text-lg font-bold text-gray-800">物業成交日 <span class="text-sm font-normal text-gray-500 ml-2">(支付尾數)</span></h4>
+                            <p class="text-xs text-gray-500 mt-1 mb-3">樓價餘額 90% 將由按揭貸款及您的首期尾數組成：</p>
+
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-600">首期尾數現金：</span>
+                                    <span id="res-downpayment-balance" class="font-bold text-gray-800">$1,200,000</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="text-gray-600">銀行按揭貸款 (<span id="lbl-mortgage-percent">70</span>%)：</span>
+                                    <span id="res-mortgage" class="font-bold text-gray-800">$4,200,000</span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-t border-green-200 flex justify-between items-center">
+                                <span class="text-gray-700 font-semibold">成交日應付總尾數：</span>
+                                <span id="res-total-balance" class="text-xl font-bold text-green-700">$5,400,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 border-2 border-gray-800 rounded-xl flex justify-between items-center bg-gray-50">
+                        <div>
+                            <span class="block text-sm text-gray-500 font-semibold">您需要準備的現金總額</span>
+                            <span class="block text-xs text-gray-400">(細訂 + 大訂 + 首期尾數)</span>
+                        </div>
+                        <span id="res-total-downpayment" class="text-3xl font-black text-gray-900">$1,800,000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatCurrency(num) {
+            return '$' + Math.round(num).toLocaleString('en-US');
+        }
+
+        function updateRange(id, value) {
+            document.getElementById(id + '-display').innerText = value + '%';
+        }
+
+        function calculate() {
+            const priceInput = parseFloat(document.getElementById('price').value) || 0;
+            const price = priceInput * 10000;
+
+            const initialPercent = parseFloat(document.getElementById('initial-dep-range').value) || 0;
+            const mortgagePercent = parseFloat(document.getElementById('mortgage-range').value) || 0;
+
+            const initialDepAmount = price * (initialPercent / 100);
+            const totalDepAmount = price * 0.10;
+
+            let furtherDepAmount = totalDepAmount - initialDepAmount;
+            if (furtherDepAmount < 0) furtherDepAmount = 0;
+
+            const mortgageAmount = price * (mortgagePercent / 100);
+            const totalDownpaymentAmount = price - mortgageAmount;
+
+            let downpaymentBalance = totalDownpaymentAmount - totalDepAmount;
+            if (downpaymentBalance < 0) downpaymentBalance = 0;
+
+            const totalBalance = price - totalDepAmount;
+
+            document.getElementById('lbl-initial-percent').innerText = initialPercent;
+            document.getElementById('lbl-mortgage-percent').innerText = mortgagePercent;
+
+            document.getElementById('res-initial').innerText = formatCurrency(initialDepAmount);
+            document.getElementById('res-further').innerText = formatCurrency(furtherDepAmount);
+            document.getElementById('res-total-dep').innerText = formatCurrency(totalDepAmount);
+            document.getElementById('res-downpayment-balance').innerText = formatCurrency(downpaymentBalance);
+            document.getElementById('res-mortgage').innerText = formatCurrency(mortgageAmount);
+            document.getElementById('res-total-balance').innerText = formatCurrency(totalBalance);
+            document.getElementById('res-total-downpayment').innerText = formatCurrency(totalDownpaymentAmount);
+        }
+
+        window.onload = calculate;
+    </script>
+</body>
+</html>
